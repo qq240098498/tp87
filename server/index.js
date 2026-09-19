@@ -68,6 +68,24 @@ app.get('/api/deps/:id', (req, res) => {
   }
 });
 
+// 某条登记的改动记录，新的排在前面，供登记详情里的改动记录区使用
+app.get('/api/deps/:id/history', (req, res) => {
+  try {
+    res.json(api.listDepHistory(req.params.id));
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+// 把登记回退到它自己的某一条改动记录，回退本身也会留下一条新记录
+app.post('/api/deps/:id/rollback', (req, res) => {
+  try {
+    res.json(api.rollbackDep(req.params.id, req.body));
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
 app.patch('/api/deps/:id', (req, res) => {
   try {
     res.json(api.updateDep(req.params.id, req.body));

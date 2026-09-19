@@ -6,6 +6,7 @@ const state = {
   licenses: [],
   statuses: [],
   editingId: '',
+  detail: { depId: '', records: [], expanded: {}, selected: [] },
 };
 
 const el = (id) => document.getElementById(id);
@@ -72,6 +73,15 @@ function formatTime(value) {
   if (Number.isNaN(date.getTime())) return value;
   const pad = (num) => String(num).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+// 改动记录里的时刻精确到秒，连续保存两次也分得开
+function formatTimeFull(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const pad = (num) => String(num).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
 // 操作者名字记在浏览器里，刷新之后还在，保存时随请求一起带上
@@ -194,6 +204,7 @@ function renderDeps() {
       <td class="note-cell">${escapeHtml(item.note)}</td>
       <td class="mono">${escapeHtml(formatTime(item.updatedAt))}</td>
       <td class="actions">
+        <button type="button" class="link" data-dep-detail="${escapeHtml(item.id)}">详情</button>
         <button type="button" class="link" data-dep-edit="${escapeHtml(item.id)}">编辑</button>
         <button type="button" class="link danger" data-dep-delete="${escapeHtml(item.id)}">删除</button>
       </td>
@@ -222,6 +233,207 @@ function closeDepForm() {
   state.editingId = '';
   el('dep-form').classList.add('hidden');
   clearFieldMarks();
+}
+
+// ---------- 登记详情：改动记录、逐条展开、两条对比、回退 ----------
+
+const ACTION_LABEL = { create: '新增', update: '修改', rollback: '回退' };
+const VERSION_SEGMENTS = ['主版本号', '次版本号', '修订号'];
+
+// 一份登记内容（当前内容或某条记录保存的内容）渲染成一排小项
+function contentItems(snapshot) {
+  const items = [
+    ['所属项目', escapeHtml(projectName(snapshot.projectId))],
+    ['依赖名称', `<span class="mono">${escapeHtml(snapshot.name)}</span>`],
+    ['版本', `<span class="mono">${escapeHtml(snapshot.version)}</span>`],
+    ['许可', snapshot.license ? escapeHtml(snapshot.license) : '<span class="missing">未填</span>'],
+    ['责任人', snapshot.owner ? escapeHtml(snapshot.owner) : '<span class="missing">未指定</span>'],
+    ['状态', escapeHtml(snapshot.status)],
+    ['备注', snapshot.note ? escapeHtml(snapshot.note) : '<span class="missing">（空）</span>'],
+  ];
+  return items.map(([key, value]) => `<div class="detail-item"><div class="k">${key}</div><div class="v">${value}</div></div>`).join('');
+}
+
+// 记录行里的一格：新增时只有改后的值，没变时只显示一个值，变了就显示 前 → 后
+function changeCell(record, field, kind) {
+  const render = (value) => {
+    if (kind === 'version') return `<span class="mono">${escapeHtml(value)}</span>`;
+    if (kind === 'license') return value ? escapeHtml(value) : '<span class="missing">未填</span>';
+    if (kind === 'owner') return value ? escapeHtml(value) : '<span class="missing">未指定</span>';
+    return escapeHtml(value);
+  };
+  const after = record.after[field];
+  if (!record.before) return `<span class="diff-new">${render(after)}</span>`;
+  const before = record.before[field];
+  if (before === after) return `<span class="diff-same">${render(after)}</span>`;
+  return `<span class="diff-old">${render(before)}</span><span class="diff-arrow">→</span><span class="diff-new">${render(after)}</span>`;
+}
+
+// 展开一条记录：把它保存下来的完整内容摆出来，回退记录还会注明是从哪条记录回退来的
+function renderRecordExpand(record) {
+  const beforeLine = record.before
+    ? `<div class="record-full-before">这次改动前：版本 ${escapeHtml(record.before.version)} · 许可 ${escapeHtml(record.before.license) || '未填'} · 责任人 ${escapeHtml(record.before.owner) || '未指定'} · 状态 ${escapeHtml(record.before.status)}</div>`
+    : '';
+  const rollbackLine = record.action === 'rollback' && record.rollbackOf
+    ? `<div class="record-full-before">这条记录由回退产生，回退到的目标记录编号是 <span class="mono">${escapeHtml(record.rollbackOf)}</span></div>`
+    : '';
+  return `<tr class="history-expand"><td colspan="8">
+    <div class="record-full">
+      <div class="record-full-head">这条记录保存的完整内容（${ACTION_LABEL[record.action] || record.action} · ${escapeHtml(formatTimeFull(record.changedAt))}）</div>
+      <div class="record-full-items">${contentItems(record.after)}</div>
+      ${beforeLine}
+      ${rollbackLine}
+    </div>
+  </td></tr>`;
+}
+
+function renderHistory() {
+  const body = el('history-body');
+  const { records, expanded, selected } = state.detail;
+  body.innerHTML = records.map((record) => {
+    const isOpen = !!expanded[record.id];
+    const checked = selected.includes(record.id) ? 'checked' : '';
+    const main = `<tr>
+      <td><input type="checkbox" data-history-select="${escapeHtml(record.id)}" ${checked} aria-label="选这条记录做对比"></td>
+      <td class="mono">${escapeHtml(formatTimeFull(record.changedAt))}</td>
+      <td><span class="tag action-${escapeHtml(record.action)}">${escapeHtml(ACTION_LABEL[record.action] || record.action)}</span></td>
+      <td>${changeCell(record, 'version', 'version')}</td>
+      <td>${changeCell(record, 'license', 'license')}</td>
+      <td>${changeCell(record, 'owner', 'owner')}</td>
+      <td>${changeCell(record, 'status', 'text')}</td>
+      <td class="actions">
+        <button type="button" class="link" data-history-toggle="${escapeHtml(record.id)}">${isOpen ? '收起' : '展开'}</button>
+        <button type="button" class="link" data-history-rollback="${escapeHtml(record.id)}">回退到这条</button>
+      </td>
+    </tr>`;
+    return isOpen ? main + renderRecordExpand(record) : main;
+  }).join('');
+  el('history-empty').classList.toggle('hidden', records.length > 0);
+}
+
+function parseVersionParts(text) {
+  const match = String(text).match(/^(\d+)\.(\d+)\.(\d+)(-([0-9A-Za-z.]+))?$/);
+  if (!match) return null;
+  return { nums: [Number(match[1]), Number(match[2]), Number(match[3])], suffix: match[5] || '' };
+}
+
+// 两个版本谁比谁新、差在第几段数字；三段数字都一样时再看预发布后缀
+function versionRelationText(olderVersion, newerVersion) {
+  const older = parseVersionParts(olderVersion);
+  const newer = parseVersionParts(newerVersion);
+  if (!older || !newer) return '两条记录的版本写法不一致，没法比较高低';
+  for (let i = 0; i < 3; i += 1) {
+    if (older.nums[i] === newer.nums[i]) continue;
+    const laterIsHigher = newer.nums[i] > older.nums[i];
+    const hi = laterIsHigher ? newerVersion : olderVersion;
+    const lo = laterIsHigher ? olderVersion : newerVersion;
+    const hiNum = laterIsHigher ? newer.nums[i] : older.nums[i];
+    const loNum = laterIsHigher ? older.nums[i] : newer.nums[i];
+    return `较晚记录的版本${laterIsHigher ? '更新' : '更低'}：${hi} 比 ${lo} 新，差在第 ${i + 1} 段数字（${VERSION_SEGMENTS[i]}，${hiNum} 对 ${loNum}）`;
+  }
+  if (older.suffix === newer.suffix) return '两条记录的版本完全相同';
+  if (!older.suffix || !newer.suffix) {
+    const laterIsHigher = !newer.suffix;
+    const hi = laterIsHigher ? newerVersion : olderVersion;
+    const lo = laterIsHigher ? olderVersion : newerVersion;
+    return `三段数字相同，${hi} 比 ${lo} 新（${lo} 带预发布后缀，正式版更高）`;
+  }
+  const laterIsHigher = newer.suffix > older.suffix;
+  const hi = laterIsHigher ? newerVersion : olderVersion;
+  const lo = laterIsHigher ? olderVersion : newerVersion;
+  return `三段数字相同，预发布后缀不同，按后缀字面顺序 ${hi} 比 ${lo} 新`;
+}
+
+// 选中两条记录后逐项列出差异；版本那一项额外给出谁比谁新、差在第几段数字
+function renderCompare() {
+  const area = el('compare-area');
+  const picked = state.detail.records.filter((record) => state.detail.selected.includes(record.id));
+  if (picked.length !== 2) {
+    area.classList.add('hidden');
+    area.innerHTML = '';
+    return;
+  }
+  // records 本来就是新→旧排好的，排前面的那条更晚
+  const newer = picked[0];
+  const older = picked[1];
+  const head = (record) => `${escapeHtml(formatTimeFull(record.changedAt))} · ${escapeHtml(ACTION_LABEL[record.action] || record.action)}`;
+  const fields = [
+    ['version', '版本'],
+    ['license', '许可'],
+    ['owner', '责任人'],
+    ['status', '状态'],
+    ['name', '依赖名称'],
+    ['projectId', '所属项目'],
+    ['note', '备注'],
+  ];
+  const display = (field, value) => {
+    if (field === 'projectId') return escapeHtml(projectName(value));
+    if (field === 'version' || field === 'name') return `<span class="mono">${escapeHtml(value)}</span>`;
+    return value ? escapeHtml(value) : '<span class="missing">（空）</span>';
+  };
+  const rows = fields.map(([field, label]) => {
+    const olderValue = older.after[field];
+    const newerValue = newer.after[field];
+    const same = olderValue === newerValue;
+    let verdict = '<span class="cmp-same">无变化</span>';
+    if (!same && field === 'version') {
+      verdict = `<span class="cmp-diff">${escapeHtml(versionRelationText(olderValue, newerValue))}</span>`;
+    } else if (!same) {
+      verdict = '<span class="cmp-diff">有改动</span>';
+    }
+    return `<tr class="${same ? '' : 'cmp-row-diff'}">
+      <td>${label}</td>
+      <td>${display(field, olderValue)}</td>
+      <td>${display(field, newerValue)}</td>
+      <td>${verdict}</td>
+    </tr>`;
+  }).join('');
+  area.innerHTML = `<h3>两条记录对比</h3>
+    <div class="table-wrap">
+      <table class="grid compare-grid">
+        <thead><tr><th>对比项</th><th>较早记录（${head(older)}）</th><th>较晚记录（${head(newer)}）</th><th>对比结果</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  area.classList.remove('hidden');
+}
+
+function renderDepDetail(dep) {
+  el('dep-detail').classList.remove('hidden');
+  el('detail-title').textContent = `登记详情：${dep.name}`;
+  el('detail-current').innerHTML = contentItems(dep)
+    + `<div class="detail-item"><div class="k">更新时间</div><div class="v mono">${escapeHtml(formatTime(dep.updatedAt))}</div></div>`;
+  renderHistory();
+  renderCompare();
+}
+
+// 拉取某条登记与它的改动记录；keepView 时保留已经展开和已经勾选的记录
+async function loadDepDetail(depId, keepView) {
+  const payload = await request(`/api/deps/${encodeURIComponent(depId)}/history`);
+  const records = payload.records || [];
+  const prev = state.detail;
+  state.detail = {
+    depId,
+    records,
+    expanded: keepView ? prev.expanded : {},
+    selected: keepView ? prev.selected.filter((id) => records.some((record) => record.id === id)) : [],
+  };
+  renderDepDetail(payload.dep);
+}
+
+function closeDepDetail() {
+  state.detail = { depId: '', records: [], expanded: {}, selected: [] };
+  el('dep-detail').classList.add('hidden');
+}
+
+// 保存或删除之后详情区还开着就顺手刷新；登记已经不在了就把它收起来
+async function refreshDetailIfOpen() {
+  if (!state.detail.depId) return;
+  try {
+    await loadDepDetail(state.detail.depId, true);
+  } catch (err) {
+    closeDepDetail();
+  }
 }
 
 async function submitProject(event) {
@@ -272,6 +484,7 @@ async function submitDep(event) {
     closeDepForm();
     await loadProjects();
     await loadDeps();
+    await refreshDetailIfOpen();
   } catch (err) {
     notify(err.message, 'error');
     markField(err.field);
@@ -312,6 +525,17 @@ document.addEventListener('click', async (event) => {
     return;
   }
 
+  if (node.dataset.depDetail) {
+    clearNotice();
+    try {
+      await loadDepDetail(node.dataset.depDetail, false);
+      el('dep-detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+    return;
+  }
+
   if (node.dataset.depEdit) {
     clearNotice();
     const found = state.deps.find((item) => item.id === node.dataset.depEdit);
@@ -329,6 +553,36 @@ document.addEventListener('click', async (event) => {
       notify('登记已删除', 'ok');
       await loadProjects();
       await loadDeps();
+      await refreshDetailIfOpen();
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+    return;
+  }
+
+  // 展开或收起一条改动记录保存的完整内容
+  if (node.dataset.historyToggle) {
+    const id = node.dataset.historyToggle;
+    state.detail.expanded[id] = !state.detail.expanded[id];
+    renderHistory();
+    return;
+  }
+
+  // 回退到某一条记录：先确认，回退后详情区会多出一条“回退”记录
+  if (node.dataset.historyRollback) {
+    clearNotice();
+    const record = state.detail.records.find((item) => item.id === node.dataset.historyRollback);
+    const depId = state.detail.depId;
+    if (!record || !depId) return;
+    const found = state.deps.find((item) => item.id === depId);
+    const name = found ? found.name : record.depName;
+    if (!window.confirm(`确定把登记「${name}」回退到 ${formatTimeFull(record.changedAt)} 那条记录保存的内容吗？\n\n回退后这条登记的内容会与那条记录一致；这次回退本身也会留下一条新的改动记录，中间的历史不会被抹掉。`)) return;
+    try {
+      await request(`/api/deps/${encodeURIComponent(depId)}/rollback`, { method: 'POST', body: JSON.stringify({ historyId: record.id }) });
+      notify('已回退到那条记录的内容，这次回退也留下了新的改动记录', 'ok');
+      await loadProjects();
+      await loadDeps();
+      await loadDepDetail(depId, true);
     } catch (err) {
       notify(err.message, 'error');
     }
@@ -374,6 +628,19 @@ el('filter-license').addEventListener('change', () => {
 });
 el('operator').addEventListener('change', () => {
   window.localStorage.setItem(OPERATOR_KEY, currentOperator());
+});
+el('detail-close').addEventListener('click', closeDepDetail);
+
+// 勾选两条记录做对比，勾第三条时最早勾的那条自动让位
+el('history-body').addEventListener('change', (event) => {
+  const box = event.target.closest('input[data-history-select]');
+  if (!box) return;
+  const id = box.dataset.historySelect;
+  const selected = state.detail.selected.filter((item) => item !== id);
+  if (box.checked) selected.push(id);
+  state.detail.selected = selected.slice(-2);
+  renderHistory();
+  renderCompare();
 });
 
 // 页面打开时先把项目与依赖登记拉一遍，项目决定登记表单里能选哪些归属

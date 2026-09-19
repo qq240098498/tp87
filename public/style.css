@@ -341,3 +341,123 @@ label.full input {
   display: flex;
   gap: 10px;
 }
+
+/* 登记详情与改动记录 */
+
+.missing {
+  color: #a6b0bb;
+  font-style: italic;
+}
+
+.detail-current {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 32px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #f9fafc;
+}
+
+.detail-item .k {
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.detail-item .v {
+  font-size: 13px;
+  word-break: break-all;
+}
+
+.detail-history-head {
+  margin-top: 18px;
+}
+
+.detail-history-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tag.action-create {
+  background: #eefaf3;
+  color: var(--ok);
+}
+
+.tag.action-update {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.tag.action-rollback {
+  background: var(--warn-bg);
+  color: #8a5a00;
+}
+
+.diff-old {
+  color: var(--ink-soft);
+}
+
+.diff-arrow {
+  color: #a6b0bb;
+  margin: 0 3px;
+}
+
+.diff-new {
+  font-weight: 600;
+}
+
+.history-expand td {
+  background: #f9fafc;
+  white-space: normal;
+  max-width: none;
+}
+
+.record-full {
+  padding: 4px 2px 6px;
+}
+
+.record-full-head {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.record-full-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+}
+
+.record-full-before {
+  margin-top: 8px;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.compare-area {
+  margin-top: 18px;
+}
+
+.compare-area h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.compare-grid td {
+  white-space: normal;
+  max-width: none;
+}
+
+.cmp-row-diff td {
+  background: #fffcf3;
+}
+
+.cmp-diff {
+  color: #8a5a00;
+  font-weight: 600;
+}
+
+.cmp-same {
+  color: var(--ink-soft);
+}

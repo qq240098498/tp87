@@ -81,7 +81,7 @@
       "status": "在用",
       "note": "内部埋点封装，许可还没确认",
       "createdAt": "2026-08-30T02:00:00.000Z",
-      "updatedAt": "2026-09-11T08:20:00.000Z"
+      "updatedAt": "2026-09-19T05:53:47.124Z"
     },
     {
       "id": "dep-2006",
@@ -238,6 +238,339 @@
       "note": "解析对账文件用，许可需要复核",
       "createdAt": "2026-09-01T02:00:00.000Z",
       "updatedAt": "2026-09-08T07:50:00.000Z"
+    }
+  ],
+  "history": [
+    {
+      "id": "hist-seed-dep-2001",
+      "depId": "dep-2001",
+      "depName": "spring-boot",
+      "action": "create",
+      "changedAt": "2026-08-28T03:00:00.000Z",
+      "before": null,
+      "after": {
+        "projectId": "proj-1001",
+        "name": "spring-boot",
+        "version": "2.7.18",
+        "license": "Apache-2.0",
+        "owner": "陈晓",
+        "status": "在用",
+        "note": "基础框架"
+      }
+    },
+    {
+      "id": "hist-seed-dep-2002",
+      "depId": "dep-2002",
+      "depName": "postgresql",
+      "action": "create",
+      "changedAt": "2026-08-28T03:02:00.000Z",
+      "before": null,
+      "after": {
+        "projectId": "proj-1001",
+        "name": "postgresql",
+        "version": "42.6.0",
+        "license": "BSD-2-Clause",
+        "owner": "陈晓",
+        "status": "在用",
+        "note": "数据库驱动"
+      }
+    },
+    {
+      "id": "hist-seed-dep-2003",
+      "depId": "dep-2003",
+      "depName": "redis-client",
+      "action": "create",
+      "changedAt": "2026-08-29T01:20:00.000Z",
+      "before": null,
+      "after": {
+        "projectId": "proj-1001",
+        "name": "redis-client",
+        "version": "3.1.0",
+        "license": "MIT",
+        "owner": "",
+        "status": "待升",
+        "note": "等缓存改造完成后一起升"
+      }
+    },
+    {
+      "id": "hist-seed-dep-2004",
+      "depId": "dep-2004",
+      "depName": "jackson-databind",
+      "action": "create",
+      "changedAt": "2026-08-29T01:22:00.000Z",
+      "before": null,
+      "after": {
+        "projectId": "proj-1001",
+        "name": "jackson-databind",
+        "version": "2.15.3",
+        "license": "Apache-2.0",
+        "owner": "陈晓",
+        "status": "在用",
+        "note": "结构化内容读写"
+      }
+    },
+    {
+      "id": "hist-seed-dep-2005",
+      "depId": "dep-2005",
+      "depName": "internal-sdk",
+      "action": "create",
+      "changedAt": "2026-08-30T02:00:00.000Z",
+      "before": null,
+      "after": {
+        "projectId": "proj-1001",
+        "name": "internal-sdk",
+        "version": "0.4.1",
+        "license": "",
+        "owner": "陈晓",
+        "status": "在用",
+        "note": "内部埋点封装，许可还没确认"
+      }
+    },
+    {
+      "id": "hist-seed-dep-2006",
+      "depId": "dep-2006",
+      "depName": "spring-boot",
+      "action": "create",
+      "changedAt": "2026-08-28T03:30:00.000Z",
+      "before": null,
+      "after": {
+        "projectId": "proj-1002",
+        "name": "spring-boot",
+        "version": "2.6.15",
+        "license": "Apache-2.0",
+        "owner": "李文",
+        "status": "在用",
+        "note": "基础框架，比订单服务低一档"
+      }
+    },
+    {
+      "id": "hist-seed-dep-2007",
+      "depId": "dep-2007",
+      "depName": "netty",
+      "action": "create",
+      "changedAt": "2026-08-28T03:32:00.000Z",
+      "before": null,
+      "after": {
+        "projectId": "proj-1002",
+        "name": "netty",
+        "version": "4.1.100",
+        "license": "Apache-2.0",
+        "owner": "李文",
+        "status": "在用",
+        "note": "长连接通道"
+      }
+    },
+    {
+      "id": "hist-seed-dep-2008",
+      "depId": "dep-2008",
+      "depName": "bouncy-castle",
+      "action": "create",
+      "changedAt": "2026-08-30T06:00:00.000Z",
+      "before": null,
+      "after": {
+        "projectId": "proj-1002",
+        "name": "bouncy-castle",
+        "version": "1.70",
+        "license": "MIT",
+        "owner": "李文",
+        "status": "待升",
+        "note": "等安全评估结论"
+      }
+    },
+    {
+      "id": "hist-seed-dep-2009",
+      "depId": "dep-2009",
+      "depName": "postgresql",
+      "action": "create",
+      "changedAt": "2026-08-28T03:35:00.000Z",
+      "before": null,
+      "after": {
+        "projectId": "proj-1002",
+        "name": "postgresql",
+        "version": "42.6.0",
+        "license": "BSD-2-Clause",
+        "owner": "李文",
+        "status": "在用",
+        "note": "数据库驱动"
+      }
+    },
+    {
+      "id": "hist-seed-dep-2010",
+      "depId": "dep-2010",
+      "depName": "protobuf-java",
+      "action": "create",
+      "changedAt": "2026-08-30T06:05:00.000Z",
+      "before": null,
+      "after": {
+        "projectId": "proj-1002",
+        "name": "protobuf-java",
+        "version": "3.24.4",
+        "license": "BSD-3-Clause",
+        "owner": "",
+        "status": "在用",
+        "note": "通道报文编解码"
+      }
+    },
+    {
+      "id": "hist-seed-dep-2011",
+      "depId": "dep-2011",
+      "depName": "react",
+      "action": "create",
+      "changedAt": "2026-08-28T04:00:00.000Z",
+      "before": null,
+      "after": {
+        "projectId": "proj-1003",
+        "name": "react",
+        "version": "18.2.0",
+        "license": "MIT",
+        "owner": "王凯",
+        "status": "在用",
+        "note": "页面框架"
+      }
+    },
+    {
+      "id": "hist-seed-dep-2012",
+      "depId": "dep-2012",
+      "depName": "axios",
+      "action": "create",
+      "changedAt": "2026-08-28T04:02:00.000Z",
+      "before": null,
+      "after": {
+        "projectId": "proj-1003",
+        "name": "axios",
+        "version": "1.6.2",
+        "license": "MIT",
+        "owner": "王凯",
+        "status": "在用",
+        "note": "请求封装"
+      }
+    },
+    {
+      "id": "hist-seed-dep-2013",
+      "depId": "dep-2013",
+      "depName": "lodash",
+      "action": "create",
+      "changedAt": "2026-08-29T08:00:00.000Z",
+      "before": null,
+      "after": {
+        "projectId": "proj-1003",
+        "name": "lodash",
+        "version": "4.17.21",
+        "license": "MIT",
+        "owner": "",
+        "status": "待升",
+        "note": "很多地方直接引了整个包"
+      }
+    },
+    {
+      "id": "hist-seed-dep-2014",
+      "depId": "dep-2014",
+      "depName": "moment",
+      "action": "create",
+      "changedAt": "2026-08-29T08:05:00.000Z",
+      "before": null,
+      "after": {
+        "projectId": "proj-1003",
+        "name": "moment",
+        "version": "2.29.4",
+        "license": "MIT",
+        "owner": "王凯",
+        "status": "已弃用",
+        "note": "体积太大，计划整体换成 dayjs"
+      }
+    },
+    {
+      "id": "hist-seed-dep-2015",
+      "depId": "dep-2015",
+      "depName": "dayjs",
+      "action": "create",
+      "changedAt": "2026-09-10T01:05:00.000Z",
+      "before": null,
+      "after": {
+        "projectId": "proj-1003",
+        "name": "dayjs",
+        "version": "1.11.10",
+        "license": "MIT",
+        "owner": "王凯",
+        "status": "在用",
+        "note": "替换 moment 后的时间处理"
+      }
+    },
+    {
+      "id": "hist-seed-dep-2016",
+      "depId": "dep-2016",
+      "depName": "typescript",
+      "action": "create",
+      "changedAt": "2026-08-28T04:10:00.000Z",
+      "before": null,
+      "after": {
+        "projectId": "proj-1003",
+        "name": "typescript",
+        "version": "5.2.2",
+        "license": "Apache-2.0",
+        "owner": "王凯",
+        "status": "在用",
+        "note": "编译与类型检查"
+      }
+    },
+    {
+      "id": "hist-seed-dep-2017",
+      "depId": "dep-2017",
+      "depName": "vite",
+      "action": "create",
+      "changedAt": "2026-08-28T04:12:00.000Z",
+      "before": null,
+      "after": {
+        "projectId": "proj-1003",
+        "name": "vite",
+        "version": "5.0.10",
+        "license": "MIT",
+        "owner": "王凯",
+        "status": "在用",
+        "note": "本地构建"
+      }
+    },
+    {
+      "id": "hist-seed-dep-2018",
+      "depId": "dep-2018",
+      "depName": "xml-parser",
+      "action": "create",
+      "changedAt": "2026-09-01T02:00:00.000Z",
+      "before": null,
+      "after": {
+        "projectId": "proj-1003",
+        "name": "xml-parser",
+        "version": "0.9.2",
+        "license": "GPL-3.0",
+        "owner": "",
+        "status": "在用",
+        "note": "解析对账文件用，许可需要复核"
+      }
+    },
+    {
+      "id": "40d94036-eb15-4d82-9188-88eb1dbf0d7a",
+      "depId": "dep-2005",
+      "depName": "internal-sdk",
+      "action": "update",
+      "changedAt": "2026-09-19T05:53:47.125Z",
+      "before": {
+        "projectId": "proj-1001",
+        "name": "internal-sdk",
+        "version": "0.4.1",
+        "license": "",
+        "owner": "陈晓",
+        "status": "在用",
+        "note": "内部埋点封装，许可还没确认"
+      },
+      "after": {
+        "projectId": "proj-1001",
+        "name": "internal-sdk",
+        "version": "0.4.1",
+        "license": "",
+        "owner": "陈晓",
+        "status": "在用",
+        "note": "内部埋点封装，许可还没确认"
+      }
     }
   ]
 }

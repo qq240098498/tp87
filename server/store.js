@@ -12,38 +12,67 @@ const MAX_OWNER_LENGTH = 40;
 const MAX_NOTE_LENGTH = 200;
 const UNASSIGNED = '未指定';
 const STATUSES = ['在用', '待升', '已弃用'];
+// 改动记录的动作只有三种：登记、修改、回退
+const HISTORY_ACTIONS = ['create', 'update', 'rollback'];
+
+// 登记内容里会被改动记录跟踪的字段，回退时也按这份内容恢复
+function snapshotOf(dep) {
+  const source = dep && typeof dep === 'object' ? dep : {};
+  return {
+    projectId: typeof source.projectId === 'string' ? source.projectId : '',
+    name: typeof source.name === 'string' ? source.name : '',
+    version: typeof source.version === 'string' ? source.version : '',
+    license: typeof source.license === 'string' ? source.license : '',
+    owner: typeof source.owner === 'string' ? source.owner : '',
+    status: STATUSES.includes(source.status) ? source.status : STATUSES[0],
+    note: typeof source.note === 'string' ? source.note : '',
+  };
+}
+
+// 每条登记的第一条改动记录就是它的登记时刻，前后对照里“改动前”为空
+function historyFromDeps(deps) {
+  return deps.map((dep) => ({
+    id: `hist-seed-${dep.id}`,
+    depId: dep.id,
+    depName: dep.name,
+    action: 'create',
+    changedAt: dep.createdAt,
+    before: null,
+    after: snapshotOf(dep),
+  }));
+}
 
 // 初始数据：三个项目、十八条依赖登记。里面故意留了几种情况：
 // 同一个依赖在两个项目里版本不一致、几条没写责任人、一条没写许可、
 // 一条停在待升状态很久、一条已经弃用，另一种是同一依赖只在单个项目里出现过
 function seedData() {
-  return {
-    projects: [
-      { id: 'proj-1001', name: '订单服务', owner: '陈晓', note: '下单与订单查询', createdAt: '2026-08-28T02:00:00.000Z' },
-      { id: 'proj-1002', name: '支付网关', owner: '李文', note: '收单与退款通道', createdAt: '2026-08-28T02:10:00.000Z' },
-      { id: 'proj-1003', name: '会员中心', owner: '王凯', note: '账号与权益', createdAt: '2026-08-28T02:20:00.000Z' },
-    ],
-    deps: [
-      { id: 'dep-2001', projectId: 'proj-1001', name: 'spring-boot', version: '2.7.18', license: 'Apache-2.0', owner: '陈晓', status: '在用', note: '基础框架', createdAt: '2026-08-28T03:00:00.000Z', updatedAt: '2026-09-15T06:10:00.000Z' },
-      { id: 'dep-2002', projectId: 'proj-1001', name: 'postgresql', version: '42.6.0', license: 'BSD-2-Clause', owner: '陈晓', status: '在用', note: '数据库驱动', createdAt: '2026-08-28T03:02:00.000Z', updatedAt: '2026-09-15T06:12:00.000Z' },
-      { id: 'dep-2003', projectId: 'proj-1001', name: 'redis-client', version: '3.1.0', license: 'MIT', owner: '', status: '待升', note: '等缓存改造完成后一起升', createdAt: '2026-08-29T01:20:00.000Z', updatedAt: '2026-08-20T02:30:00.000Z' },
-      { id: 'dep-2004', projectId: 'proj-1001', name: 'jackson-databind', version: '2.15.3', license: 'Apache-2.0', owner: '陈晓', status: '在用', note: '结构化内容读写', createdAt: '2026-08-29T01:22:00.000Z', updatedAt: '2026-09-12T03:40:00.000Z' },
-      { id: 'dep-2005', projectId: 'proj-1001', name: 'internal-sdk', version: '0.4.1', license: '', owner: '陈晓', status: '在用', note: '内部埋点封装，许可还没确认', createdAt: '2026-08-30T02:00:00.000Z', updatedAt: '2026-09-11T08:20:00.000Z' },
-      { id: 'dep-2006', projectId: 'proj-1002', name: 'spring-boot', version: '2.6.15', license: 'Apache-2.0', owner: '李文', status: '在用', note: '基础框架，比订单服务低一档', createdAt: '2026-08-28T03:30:00.000Z', updatedAt: '2026-09-14T05:05:00.000Z' },
-      { id: 'dep-2007', projectId: 'proj-1002', name: 'netty', version: '4.1.100', license: 'Apache-2.0', owner: '李文', status: '在用', note: '长连接通道', createdAt: '2026-08-28T03:32:00.000Z', updatedAt: '2026-09-14T05:08:00.000Z' },
-      { id: 'dep-2008', projectId: 'proj-1002', name: 'bouncy-castle', version: '1.70', license: 'MIT', owner: '李文', status: '待升', note: '等安全评估结论', createdAt: '2026-08-30T06:00:00.000Z', updatedAt: '2026-08-25T07:15:00.000Z' },
-      { id: 'dep-2009', projectId: 'proj-1002', name: 'postgresql', version: '42.6.0', license: 'BSD-2-Clause', owner: '李文', status: '在用', note: '数据库驱动', createdAt: '2026-08-28T03:35:00.000Z', updatedAt: '2026-09-09T09:00:00.000Z' },
-      { id: 'dep-2010', projectId: 'proj-1002', name: 'protobuf-java', version: '3.24.4', license: 'BSD-3-Clause', owner: '', status: '在用', note: '通道报文编解码', createdAt: '2026-08-30T06:05:00.000Z', updatedAt: '2026-09-09T09:05:00.000Z' },
-      { id: 'dep-2011', projectId: 'proj-1003', name: 'react', version: '18.2.0', license: 'MIT', owner: '王凯', status: '在用', note: '页面框架', createdAt: '2026-08-28T04:00:00.000Z', updatedAt: '2026-09-16T02:00:00.000Z' },
-      { id: 'dep-2012', projectId: 'proj-1003', name: 'axios', version: '1.6.2', license: 'MIT', owner: '王凯', status: '在用', note: '请求封装', createdAt: '2026-08-28T04:02:00.000Z', updatedAt: '2026-09-16T02:02:00.000Z' },
-      { id: 'dep-2013', projectId: 'proj-1003', name: 'lodash', version: '4.17.21', license: 'MIT', owner: '', status: '待升', note: '很多地方直接引了整个包', createdAt: '2026-08-29T08:00:00.000Z', updatedAt: '2026-08-18T03:30:00.000Z' },
-      { id: 'dep-2014', projectId: 'proj-1003', name: 'moment', version: '2.29.4', license: 'MIT', owner: '王凯', status: '已弃用', note: '体积太大，计划整体换成 dayjs', createdAt: '2026-08-29T08:05:00.000Z', updatedAt: '2026-09-10T01:00:00.000Z' },
-      { id: 'dep-2015', projectId: 'proj-1003', name: 'dayjs', version: '1.11.10', license: 'MIT', owner: '王凯', status: '在用', note: '替换 moment 后的时间处理', createdAt: '2026-09-10T01:05:00.000Z', updatedAt: '2026-09-10T01:05:00.000Z' },
-      { id: 'dep-2016', projectId: 'proj-1003', name: 'typescript', version: '5.2.2', license: 'Apache-2.0', owner: '王凯', status: '在用', note: '编译与类型检查', createdAt: '2026-08-28T04:10:00.000Z', updatedAt: '2026-09-08T07:40:00.000Z' },
-      { id: 'dep-2017', projectId: 'proj-1003', name: 'vite', version: '5.0.10', license: 'MIT', owner: '王凯', status: '在用', note: '本地构建', createdAt: '2026-08-28T04:12:00.000Z', updatedAt: '2026-09-08T07:42:00.000Z' },
-      { id: 'dep-2018', projectId: 'proj-1003', name: 'xml-parser', version: '0.9.2', license: 'GPL-3.0', owner: '', status: '在用', note: '解析对账文件用，许可需要复核', createdAt: '2026-09-01T02:00:00.000Z', updatedAt: '2026-09-08T07:50:00.000Z' },
-    ],
-  };
+  const projects = [
+    { id: 'proj-1001', name: '订单服务', owner: '陈晓', note: '下单与订单查询', createdAt: '2026-08-28T02:00:00.000Z' },
+    { id: 'proj-1002', name: '支付网关', owner: '李文', note: '收单与退款通道', createdAt: '2026-08-28T02:10:00.000Z' },
+    { id: 'proj-1003', name: '会员中心', owner: '王凯', note: '账号与权益', createdAt: '2026-08-28T02:20:00.000Z' },
+  ];
+  const deps = [
+    { id: 'dep-2001', projectId: 'proj-1001', name: 'spring-boot', version: '2.7.18', license: 'Apache-2.0', owner: '陈晓', status: '在用', note: '基础框架', createdAt: '2026-08-28T03:00:00.000Z', updatedAt: '2026-09-15T06:10:00.000Z' },
+    { id: 'dep-2002', projectId: 'proj-1001', name: 'postgresql', version: '42.6.0', license: 'BSD-2-Clause', owner: '陈晓', status: '在用', note: '数据库驱动', createdAt: '2026-08-28T03:02:00.000Z', updatedAt: '2026-09-15T06:12:00.000Z' },
+    { id: 'dep-2003', projectId: 'proj-1001', name: 'redis-client', version: '3.1.0', license: 'MIT', owner: '', status: '待升', note: '等缓存改造完成后一起升', createdAt: '2026-08-29T01:20:00.000Z', updatedAt: '2026-08-20T02:30:00.000Z' },
+    { id: 'dep-2004', projectId: 'proj-1001', name: 'jackson-databind', version: '2.15.3', license: 'Apache-2.0', owner: '陈晓', status: '在用', note: '结构化内容读写', createdAt: '2026-08-29T01:22:00.000Z', updatedAt: '2026-09-12T03:40:00.000Z' },
+    { id: 'dep-2005', projectId: 'proj-1001', name: 'internal-sdk', version: '0.4.1', license: '', owner: '陈晓', status: '在用', note: '内部埋点封装，许可还没确认', createdAt: '2026-08-30T02:00:00.000Z', updatedAt: '2026-09-11T08:20:00.000Z' },
+    { id: 'dep-2006', projectId: 'proj-1002', name: 'spring-boot', version: '2.6.15', license: 'Apache-2.0', owner: '李文', status: '在用', note: '基础框架，比订单服务低一档', createdAt: '2026-08-28T03:30:00.000Z', updatedAt: '2026-09-14T05:05:00.000Z' },
+    { id: 'dep-2007', projectId: 'proj-1002', name: 'netty', version: '4.1.100', license: 'Apache-2.0', owner: '李文', status: '在用', note: '长连接通道', createdAt: '2026-08-28T03:32:00.000Z', updatedAt: '2026-09-14T05:08:00.000Z' },
+    { id: 'dep-2008', projectId: 'proj-1002', name: 'bouncy-castle', version: '1.70', license: 'MIT', owner: '李文', status: '待升', note: '等安全评估结论', createdAt: '2026-08-30T06:00:00.000Z', updatedAt: '2026-08-25T07:15:00.000Z' },
+    { id: 'dep-2009', projectId: 'proj-1002', name: 'postgresql', version: '42.6.0', license: 'BSD-2-Clause', owner: '李文', status: '在用', note: '数据库驱动', createdAt: '2026-08-28T03:35:00.000Z', updatedAt: '2026-09-09T09:00:00.000Z' },
+    { id: 'dep-2010', projectId: 'proj-1002', name: 'protobuf-java', version: '3.24.4', license: 'BSD-3-Clause', owner: '', status: '在用', note: '通道报文编解码', createdAt: '2026-08-30T06:05:00.000Z', updatedAt: '2026-09-09T09:05:00.000Z' },
+    { id: 'dep-2011', projectId: 'proj-1003', name: 'react', version: '18.2.0', license: 'MIT', owner: '王凯', status: '在用', note: '页面框架', createdAt: '2026-08-28T04:00:00.000Z', updatedAt: '2026-09-16T02:00:00.000Z' },
+    { id: 'dep-2012', projectId: 'proj-1003', name: 'axios', version: '1.6.2', license: 'MIT', owner: '王凯', status: '在用', note: '请求封装', createdAt: '2026-08-28T04:02:00.000Z', updatedAt: '2026-09-16T02:02:00.000Z' },
+    { id: 'dep-2013', projectId: 'proj-1003', name: 'lodash', version: '4.17.21', license: 'MIT', owner: '', status: '待升', note: '很多地方直接引了整个包', createdAt: '2026-08-29T08:00:00.000Z', updatedAt: '2026-08-18T03:30:00.000Z' },
+    { id: 'dep-2014', projectId: 'proj-1003', name: 'moment', version: '2.29.4', license: 'MIT', owner: '王凯', status: '已弃用', note: '体积太大，计划整体换成 dayjs', createdAt: '2026-08-29T08:05:00.000Z', updatedAt: '2026-09-10T01:00:00.000Z' },
+    { id: 'dep-2015', projectId: 'proj-1003', name: 'dayjs', version: '1.11.10', license: 'MIT', owner: '王凯', status: '在用', note: '替换 moment 后的时间处理', createdAt: '2026-09-10T01:05:00.000Z', updatedAt: '2026-09-10T01:05:00.000Z' },
+    { id: 'dep-2016', projectId: 'proj-1003', name: 'typescript', version: '5.2.2', license: 'Apache-2.0', owner: '王凯', status: '在用', note: '编译与类型检查', createdAt: '2026-08-28T04:10:00.000Z', updatedAt: '2026-09-08T07:40:00.000Z' },
+    { id: 'dep-2017', projectId: 'proj-1003', name: 'vite', version: '5.0.10', license: 'MIT', owner: '王凯', status: '在用', note: '本地构建', createdAt: '2026-08-28T04:12:00.000Z', updatedAt: '2026-09-08T07:42:00.000Z' },
+    { id: 'dep-2018', projectId: 'proj-1003', name: 'xml-parser', version: '0.9.2', license: 'GPL-3.0', owner: '', status: '在用', note: '解析对账文件用，许可需要复核', createdAt: '2026-09-01T02:00:00.000Z', updatedAt: '2026-09-08T07:50:00.000Z' },
+  ];
+  // 初始的改动记录与初始登记一一对应，页面打开就能看到每条登记的起点
+  return { projects, deps, history: historyFromDeps(deps) };
 }
 
 // 把单个项目整理成固定结构，避免数据文件被手工改动后出现缺字段
@@ -78,7 +107,27 @@ function normalizeDep(item, fallbackIndex) {
   };
 }
 
-// 整份数据保证 projects 与 deps 结构一致，指向不存在项目的登记一律丢掉
+// 把单条改动记录整理成固定结构，动作不认识的一律按修改处理
+function normalizeHistoryEntry(item, fallbackIndex) {
+  const source = item && typeof item === 'object' ? item : {};
+  const action = HISTORY_ACTIONS.includes(source.action) ? source.action : 'update';
+  const entry = {
+    id: typeof source.id === 'string' && source.id ? source.id : `hist-restored-${fallbackIndex + 1}`,
+    depId: typeof source.depId === 'string' ? source.depId : '',
+    depName: typeof source.depName === 'string' ? source.depName : '',
+    action,
+    changedAt: typeof source.changedAt === 'string' && source.changedAt ? source.changedAt : new Date().toISOString(),
+    before: source.before && typeof source.before === 'object' ? snapshotOf(source.before) : null,
+    after: snapshotOf(source.after),
+  };
+  if (action === 'rollback' && typeof source.rollbackOf === 'string' && source.rollbackOf) {
+    entry.rollbackOf = source.rollbackOf;
+  }
+  return entry;
+}
+
+// 整份数据保证 projects、deps 与 history 结构一致，指向不存在项目的登记一律丢掉，
+// 指向不存在登记的改动记录也一并丢掉
 function normalize(raw) {
   const source = raw && typeof raw === 'object' ? raw : {};
   const seed = seedData();
@@ -106,7 +155,24 @@ function normalize(raw) {
         .filter((item) => known.has(item.projectId))
     : [];
 
-  return { projects: dedupedProjects, deps };
+  const knownDepIds = new Set(deps.map((item) => item.id));
+  let history;
+  if (Array.isArray(source.history)) {
+    const seenHistoryIds = new Set();
+    history = source.history
+      .map((item, index) => normalizeHistoryEntry(item, index))
+      .filter((item) => item.depId && knownDepIds.has(item.depId))
+      .filter((item) => {
+        if (seenHistoryIds.has(item.id)) return false;
+        seenHistoryIds.add(item.id);
+        return true;
+      });
+  } else {
+    // 旧数据文件里还没有改动记录，按现有登记内容补出每条的第一条记录
+    history = historyFromDeps(deps);
+  }
+
+  return { projects: dedupedProjects, deps, history };
 }
 
 // 读取数据文件：文件缺失或内容损坏时回落到初始数据并立刻补写
@@ -136,7 +202,9 @@ module.exports = {
   normalize,
   normalizeProject,
   normalizeDep,
+  snapshotOf,
   STATUSES,
+  HISTORY_ACTIONS,
   UNASSIGNED,
   MAX_NAME_LENGTH,
   MAX_VERSION_LENGTH,

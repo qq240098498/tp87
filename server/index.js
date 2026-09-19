@@ -84,6 +84,33 @@ app.delete('/api/deps/:id', (req, res) => {
   }
 });
 
+// 改动记录：按时刻从新到旧列出这条登记的全部记录
+app.get('/api/deps/:id/history', (req, res) => {
+  try {
+    res.json(api.listHistory(req.params.id));
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+// 对比两条改动记录：逐项列差异，版本给出高低关系
+app.get('/api/deps/:id/history/compare', (req, res) => {
+  try {
+    res.json(api.compareRecords(req.params.id, api.readQuery(req.query, 'a'), api.readQuery(req.query, 'b')));
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+// 回退到这条登记自己的某一条记录，回退本身也会留下一条新记录
+app.post('/api/deps/:id/revert', (req, res) => {
+  try {
+    res.json(api.revertDep(req.params.id, req.body));
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
 // 未匹配到的接口路径统一返回说明，避免前端拿到一串页面内容
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: { code: 'API_NOT_FOUND', message: '接口不存在', field: '' } });

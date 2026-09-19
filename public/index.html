@@ -111,6 +111,22 @@
         </div>
       </form>
     </section>
+
+    <section class="panel hidden" id="dep-detail">
+      <div class="panel-head">
+        <h2 id="detail-title">登记详情</h2>
+        <div class="panel-tip">改动记录按时刻从新到旧排列，每条都能展开看完整内容；勾选两条可以逐项对比，任何一条都能回退到它</div>
+        <button type="button" class="ghost" id="detail-close">关闭</button>
+      </div>
+      <div class="detail-current" id="detail-current"></div>
+      <div class="history-bar">
+        <h3>改动记录</h3>
+        <button type="button" class="ghost" id="compare-run">对比选中的两条记录</button>
+      </div>
+      <p class="empty-tip hidden" id="history-empty">这条登记还没有改动记录，保存一次之后就会留下</p>
+      <div id="history-list"></div>
+      <div class="compare-box hidden" id="compare-result"></div>
+    </section>
   </main>
 
   <script src="app.js"></script>

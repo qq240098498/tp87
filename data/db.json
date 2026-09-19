@@ -81,7 +81,7 @@
       "status": "在用",
       "note": "内部埋点封装，许可还没确认",
       "createdAt": "2026-08-30T02:00:00.000Z",
-      "updatedAt": "2026-09-11T08:20:00.000Z"
+      "updatedAt": "2026-09-19T05:53:00.496Z"
     },
     {
       "id": "dep-2006",
@@ -238,6 +238,32 @@
       "note": "解析对账文件用，许可需要复核",
       "createdAt": "2026-09-01T02:00:00.000Z",
       "updatedAt": "2026-09-08T07:50:00.000Z"
+    }
+  ],
+  "history": [
+    {
+      "id": "bc098e90-eb09-49f2-a1cc-21c34ee1bdd8",
+      "depId": "dep-2005",
+      "kind": "update",
+      "changedAt": "2026-09-19T05:53:00.496Z",
+      "before": {
+        "projectId": "proj-1001",
+        "name": "internal-sdk",
+        "version": "0.4.1",
+        "license": "",
+        "owner": "陈晓",
+        "status": "在用",
+        "note": "内部埋点封装，许可还没确认"
+      },
+      "after": {
+        "projectId": "proj-1001",
+        "name": "internal-sdk",
+        "version": "0.4.1",
+        "license": "",
+        "owner": "陈晓",
+        "status": "在用",
+        "note": "内部埋点封装，许可还没确认"
+      }
     }
   ]
 }

@@ -43,6 +43,7 @@ function seedData() {
       { id: 'dep-2017', projectId: 'proj-1003', name: 'vite', version: '5.0.10', license: 'MIT', owner: '王凯', status: '在用', note: '本地构建', createdAt: '2026-08-28T04:12:00.000Z', updatedAt: '2026-09-08T07:42:00.000Z' },
       { id: 'dep-2018', projectId: 'proj-1003', name: 'xml-parser', version: '0.9.2', license: 'GPL-3.0', owner: '', status: '在用', note: '解析对账文件用，许可需要复核', createdAt: '2026-09-01T02:00:00.000Z', updatedAt: '2026-09-08T07:50:00.000Z' },
     ],
+    history: [],
   };
 }
 
@@ -78,6 +79,37 @@ function normalizeDep(item, fallbackIndex) {
   };
 }
 
+// 改动记录里保存的登记内容，字段与登记本身一一对应，回退时也按这些字段恢复
+function normalizeSnapshot(item) {
+  const source = item && typeof item === 'object' ? item : {};
+  return {
+    projectId: typeof source.projectId === 'string' ? source.projectId : '',
+    name: typeof source.name === 'string' ? source.name : '',
+    version: typeof source.version === 'string' ? source.version : '',
+    license: typeof source.license === 'string' ? source.license : '',
+    owner: typeof source.owner === 'string' ? source.owner : '',
+    status: STATUSES.includes(source.status) ? source.status : STATUSES[0],
+    note: typeof source.note === 'string' ? source.note : '',
+  };
+}
+
+const HISTORY_KINDS = ['create', 'update', 'revert'];
+
+// 单条改动记录整理成固定结构：改动时刻、属于哪条登记、改动前后的完整内容
+function normalizeHistoryRecord(item, fallbackIndex) {
+  const source = item && typeof item === 'object' ? item : {};
+  const record = {
+    id: typeof source.id === 'string' && source.id ? source.id : `hist-restored-${fallbackIndex + 1}`,
+    depId: typeof source.depId === 'string' ? source.depId : '',
+    kind: HISTORY_KINDS.includes(source.kind) ? source.kind : 'update',
+    changedAt: typeof source.changedAt === 'string' && source.changedAt ? source.changedAt : new Date().toISOString(),
+    before: source.before && typeof source.before === 'object' ? normalizeSnapshot(source.before) : null,
+    after: normalizeSnapshot(source.after),
+  };
+  if (typeof source.revertedFrom === 'string' && source.revertedFrom) record.revertedFrom = source.revertedFrom;
+  return record;
+}
+
 // 整份数据保证 projects 与 deps 结构一致，指向不存在项目的登记一律丢掉
 function normalize(raw) {
   const source = raw && typeof raw === 'object' ? raw : {};
@@ -106,7 +138,15 @@ function normalize(raw) {
         .filter((item) => known.has(item.projectId))
     : [];
 
-  return { projects: dedupedProjects, deps };
+  // 改动记录跟着登记走，指向已删除登记的记录一并丢掉
+  const depIds = new Set(deps.map((item) => item.id));
+  const history = Array.isArray(source.history)
+    ? source.history
+        .map((item, index) => normalizeHistoryRecord(item, index))
+        .filter((item) => item.depId && depIds.has(item.depId) && item.after.name)
+    : [];
+
+  return { projects: dedupedProjects, deps, history };
 }
 
 // 读取数据文件：文件缺失或内容损坏时回落到初始数据并立刻补写

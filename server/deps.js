@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const { load, save, STATUSES, MAX_NAME_LENGTH, MAX_VERSION_LENGTH, MAX_LICENSE_LENGTH, MAX_OWNER_LENGTH, MAX_NOTE_LENGTH } = require('./store');
 const { ApiError, pickText } = require('./errors');
 const { findProject } = require('./projects');
+const { recordChange, snapshotOf } = require('./history');
 
 // 依赖名允许小写字母、数字、点、下划线、短横线，也允许带范围的写法
 const NAME_PATTERN = /^[@a-z0-9][@a-z0-9._/-]*$/;
@@ -137,6 +138,8 @@ function createDep(payload) {
     updatedAt: now,
   };
   data.deps.push(created);
+  // 新建也留一条记录，登记时的完整内容从这里就能查到
+  recordChange(data, created.id, 'create', null, created);
   save(data);
   return created;
 }
@@ -147,6 +150,8 @@ function updateDep(id, payload) {
   const found = data.deps.find((item) => item.id === id);
   if (!found) throw new ApiError(404, 'DEP_NOT_FOUND', '这条依赖登记不存在或已被删除', '');
 
+  // 动手之前先把当前内容存下来，改动记录里要看得出改动前后
+  const before = snapshotOf(found);
   const project = input.projectId === undefined ? null : findProject(data, input.projectId);
   const projectId = project ? project.id : found.projectId;
   const name = input.name === undefined ? found.name : validateName(input.name);
@@ -160,6 +165,8 @@ function updateDep(id, payload) {
   found.status = input.status === undefined ? found.status : validateStatus(input.status);
   found.note = input.note === undefined ? found.note : validateNote(input.note);
   found.updatedAt = new Date().toISOString();
+  // 每次保存都留一条改动记录，改动前后的完整内容一起存
+  recordChange(data, found.id, 'update', before, found);
   save(data);
   return found;
 }
@@ -169,6 +176,8 @@ function deleteDep(id) {
   const index = data.deps.findIndex((item) => item.id === id);
   if (index === -1) throw new ApiError(404, 'DEP_NOT_FOUND', '这条依赖登记不存在或已被删除', '');
   const [removed] = data.deps.splice(index, 1);
+  // 登记删掉时，它自己的改动记录也一起清掉
+  data.history = data.history.filter((item) => item.depId !== removed.id);
   save(data);
   return { id: removed.id, name: removed.name };
 }
